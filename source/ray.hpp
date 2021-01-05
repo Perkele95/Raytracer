@@ -1,6 +1,7 @@
 #pragma once
 
 #include "mp_maths.h"
+typedef int32_t bool32;
 // Ray definition: point(t) = origin + direction * t;
 struct ray
 {
