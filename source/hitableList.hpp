@@ -2,7 +2,7 @@
 
 #include "hitable.hpp"
 
-struct hitableList
+struct hitableList : hitable
 {
     hitableList() {};
     hitableList(hitable **l, int32_t n) : list(l), listSize(n) {};
