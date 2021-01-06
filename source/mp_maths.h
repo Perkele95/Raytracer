@@ -65,6 +65,17 @@ inline vec3& operator*=(vec3 &a, float b)
     return a;
 }
 
+inline vec3 operator*(vec3 a, vec3 b)
+{
+    vec3 result;
+
+    result.x = a.x * b.x;
+    result.y = a.y * b.y;
+    result.z = a.z * b.z;
+
+    return result;
+}
+
 inline vec3& operator/=(vec3 &a, float b)
 {
     a = b / a;
@@ -171,6 +182,17 @@ inline vec3 operator-(float b, vec3 a)
     result.x = a.x - b;
     result.y = a.y - b;
     result.z = a.z - b;
+
+    return result;
+}
+
+inline vec3 operator-(vec3 a)
+{
+    vec3 result;
+
+    result.x = -a.x;
+    result.y = -a.y;
+    result.z = -a.z;
 
     return result;
 }

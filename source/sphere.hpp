@@ -5,11 +5,12 @@
 struct sphere : hitable
 {
     sphere() {};
-    sphere(vec3 cen, float r) : centre(cen), radius(r) {};
+    sphere(vec3 cen, float r, material *m) : centre(cen), radius(r), matPtr(m) {};
     virtual bool32 hit(const ray &r, float tMin, float tMax, hitInfo &info) const;
 
     vec3 centre;
     float radius;
+    material *matPtr;
 };
 
 bool32 sphere::hit(const ray &r, float tMin, float tMax, hitInfo &info) const{
@@ -25,6 +26,7 @@ bool32 sphere::hit(const ray &r, float tMin, float tMax, hitInfo &info) const{
             info.t = temp;
             info.point = r.getPoint(temp);
             info.normal = (info.point - centre) / radius;
+            info.matPtr = matPtr;
             return true;
         }
         temp = (-b + discriminantSqrt) / a;
@@ -32,6 +34,7 @@ bool32 sphere::hit(const ray &r, float tMin, float tMax, hitInfo &info) const{
             info.t = temp;
             info.point = r.getPoint(temp);
             info.normal = (info.point - centre) / radius;
+            info.matPtr = matPtr;
             return true;
         }
     }

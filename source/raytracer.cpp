@@ -3,31 +3,50 @@
  */
 #include "sphere.hpp"
 #include "hitableList.hpp"
+#include "material.hpp"
 #include "camera.hpp"
 #include <random>
 
 constexpr float MAX_FLOAT = float(0xffffffff);
-constexpr vec3 worldUp = {0.0f, 1.0f, 0.0f};
+constexpr vec3 sceneUp = {0.0f, 1.0f, 0.0f};
 
 static std::random_device randDevice;
 static std::mt19937 gen(randDevice());
 static std::uniform_real_distribution<> distr(0.0f, 0.9999999f);
 
+inline float randFloat()
+{
+    return float(distr(gen));
+}
+
 vec3 randomInUnitSphere(){
     vec3 p;
     do
     {
-        p = 2.0f * vec3{float(distr(gen)), float(distr(gen)), float(distr(gen))} - vec3{1.0f, 1.0f, 1.0f};
+        p = 2.0f * vec3{randFloat(), randFloat(), randFloat()} - vec3{1.0f, 1.0f, 1.0f};
     } while (vec3SquaredLength(p) >= 1.0f);
     return p;
 }
 
-vec3 getRayColour(const ray &r, hitable *world)
+vec3 randomUnitInDisk(){
+    vec3 p;
+    do
+    {
+        p = 2.0f * vec3{randFloat(), randFloat(), 0} - vec3{1.0f, 1.0f, 0.0f};
+    } while (vec3Dot(p, p) >= 1.0f);
+    return p;
+}
+
+vec3 getRayColour(const ray &r, hitable *scene, int32_t depth)
 {
     hitInfo info;
-    if(world->hit(r, 0.0f, MAX_FLOAT, info)){
-        vec3 target = info.point + info.normal + randomInUnitSphere();
-        return 0.5f * getRayColour(ray(info.point, target - info.point), world);
+    if(scene->hit(r, 0.001f, MAX_FLOAT, info)){
+        ray scattered;
+        vec3 attenuation;
+        if(depth < 50 && info.matPtr->scatter(r, info, attenuation, scattered))
+            return attenuation * getRayColour(scattered, scene, depth + 1);
+        else
+            return {0.0f, 0.0f, 0.0f};
     }
     else{
         vec3 unitDirection = normalise(r.direction);
@@ -43,18 +62,47 @@ inline static void gammaCorrection(vec3 &colour)
     colour.z = sqrtf(colour.z);
 }
 
+static hitable *generateScene()
+{
+    int32_t n = 500;
+    hitable **list = new hitable*[n + 1];
+    list[0] = new sphere({0.0f, -1000.0f, 0.0f}, 1000.0f, new lambertian({0.5f, 0.6f, 0.5f}));
+    int32_t i = 1;
+
+    for(int32_t x = -11; x < 11; x++){
+        for(int32_t y = -11; y < 11; y++){
+            float chooseMat = randFloat();
+            vec3 centre = {x + 0.9f * randFloat(), 0.2f, y + 0.9f * randFloat()};
+            if(vec3Length(centre - vec3{4.0f, 0.2f, 0.0f}) > 0.9f){
+                if(chooseMat < 0.7f)
+                    list[i++] = new sphere(centre, 0.2f, new lambertian(randFloat() * vec3{randFloat(), randFloat(), randFloat()}));
+                else if(chooseMat < 0.95f)
+                    list[i++] = new sphere(centre, 0.2f, new metal(0.5f * vec3{randFloat() + 1.0f, randFloat() + 1.0f, randFloat() + 1.0f}, 0.5f * randFloat()));
+                else
+                    list[i++] = new sphere(centre, 0.2f, new dielectric(1.5f));
+            }
+        }
+    }
+    list[i++] = new sphere({4.0f, 1.0f, 0.0f}, 1.0f, new metal({0.3f, 0.3f, 0.35f}, 0.2f));
+    list[i++] = new sphere({-4.0f, 1.0f, 0.0f}, 1.0f, new lambertian({0.8f, 0.4f, 0.4f}));
+    list[i++] = new sphere({0.0f, 1.0f, 0.0f}, 1.0f, new dielectric(1.5f));
+
+    return new hitableList(list, i);
+}
+
 int main()
 {
     std::ofstream output("out.ppm");
-    int32_t nX = 200, nY = 100, nS = 100;
+    int32_t nX = 1280, nY = 720, nS = 100;
     output << "P3\n" << nX << " " << nY << "\n255\n";
 
-    hitable *list[2];
-    list[0] = new sphere(vec3{0.0f, 0.0f, -1.0f}, 0.5f);
-    list[1] = new sphere(vec3{0.0f, -100.5f, -1.0f}, 100.0f);
-    hitable *world = new hitableList(list, 2);
+    hitable *scene = generateScene();
 
-    camera mainCamera;
+    vec3 lookFrom = {12.0f, 1.6f, 2.5f};
+    vec3 lookAt =  {0.0f, 0.0f, 0.0f};
+    vec3 up = {0.0f, 1.0f, 0.0f};
+    float focusDistance = vec3Length(lookFrom - lookAt);
+    camera mainCamera = camera(lookFrom, lookAt, up, 23.0f, float(nX) / float(nY), 0.2f, focusDistance);
 
     for(int32_t i = nY - 1; i >= 0; i--){
         for(int32_t j = 0; j < nX; j++){
@@ -63,8 +111,7 @@ int main()
                 float u = (float(j) + float(distr(gen))) / float(nX);
                 float v = (float(i) + float(distr(gen))) / float(nY);
                 ray r = mainCamera.getRay(u, v);
-                vec3 point = r.getPoint(2.0f);
-                colour += getRayColour(r, world);
+                colour += getRayColour(r, scene, 0);
             }
             colour /= float(nS);
             gammaCorrection(colour);

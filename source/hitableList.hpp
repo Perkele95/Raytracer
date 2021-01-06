@@ -5,7 +5,7 @@
 struct hitableList : hitable
 {
     hitableList() {};
-    hitableList(hitable **l, int32_t n) : list(l), listSize(n) {};
+    hitableList(hitable **l, int32_t size) : list(l), listSize(size) {};
     virtual bool32 hit(const ray &r, float tMin, float tMax, hitInfo &info) const;
 
     hitable **list;

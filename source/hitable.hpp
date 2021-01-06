@@ -1,12 +1,14 @@
 #pragma once
 
 #include "ray.hpp"
+struct material;
 
 struct hitInfo
 {
     float t;
     vec3 point;
     vec3 normal;
+    material *matPtr;
 };
 
 struct hitable
