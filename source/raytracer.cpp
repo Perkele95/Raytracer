@@ -93,7 +93,7 @@ static hitable *generateScene()
 int main()
 {
     std::ofstream output("out.ppm");
-    int32_t nX = 1280, nY = 720, nS = 100;
+    int32_t nX = 1200, nY = 700, nS = 100;
     output << "P3\n" << nX << " " << nY << "\n255\n";
 
     hitable *scene = generateScene();
